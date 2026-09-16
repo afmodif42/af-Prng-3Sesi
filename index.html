@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A-F Modif — BOOT PRNG</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+:root{--bg:#060810;--panel:#0c0e1a;--panel2:#101420;--border:#1a1f35;--accent:#00e5ff;--accent2:#ff3d71;--green:#00e676;--gold:#ffc947;--purple:#b388ff;--orange:#ff9100;--red:#ff4444;--text:#cdd8f0;--dim:#4a5570;--dim2:#2a3050}
+*{margin:0;padding:0;box-sizing:border-box} body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;padding:14px 10px 60px;background-image:radial-gradient(ellipse 60% 40% at 15% 0%,rgba(0,229,255,.07),transparent 60%),radial-gradient(ellipse 50% 30% at 85% 100%,rgba(179,136,255,.07),transparent 60%)}
+.header{text-align:center;margin-bottom:14px}.header-tag{font-size:9px;letter-spacing:6px;color:var(--accent);opacity:.7;margin-bottom:5px}.header h1{font-family:Orbitron,monospace;font-size:clamp(17px,5vw,25px);font-weight:900;letter-spacing:4px;color:#fff;text-shadow:0 0 30px rgba(0,229,255,.4)}.header h1 em{color:var(--accent);font-style:normal}.header-sub{font-size:9px;color:var(--dim);letter-spacing:1.5px;margin-top:5px}
+.tabs{display:flex;gap:3px;margin-bottom:10px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:3px;overflow-x:auto}.tab{flex:0 0 auto;min-width:90px;padding:8px 10px;text-align:center;font-family:Orbitron,monospace;font-size:8px;letter-spacing:1px;border-radius:7px;cursor:pointer;color:var(--dim);border:1px solid transparent}.tab.active{background:var(--panel2);color:var(--green);border-color:var(--green)}.tab.blue.active{color:var(--accent);border-color:var(--accent)}.tab.gold.active{color:var(--gold);border-color:var(--gold)}.tab.red.active{color:var(--accent2);border-color:var(--accent2)}.tab.purple.active{color:var(--purple);border-color:var(--purple)}
+.page{display:none}.page.active{display:block}.hv2-box{background:linear-gradient(135deg,rgba(0,230,118,.06),rgba(0,229,255,.04));border:1px solid rgba(0,230,118,.28);border-radius:10px;padding:12px 14px;margin-bottom:10px}.hv2-title{font-family:Orbitron,monospace;font-size:10px;letter-spacing:2px;color:var(--green);margin-bottom:5px}.hv2-sub{font-size:8px;color:var(--dim);line-height:1.65}.hv2-mode{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:9px}.hv2-mode-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}.hv2-mode-title{font-family:Orbitron,monospace;font-size:9px;letter-spacing:2px;color:var(--green)}.hv2-stat{font-size:8px;color:var(--dim)}.hv2-list{display:flex;flex-direction:column;gap:4px}.hv2-item{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px 8px}.hv2-rank{width:27px;color:var(--dim);font-size:8px}.hv2-cand{flex:1;font-family:Orbitron,monospace;font-size:12px;font-weight:700;letter-spacing:2px;color:#fff}.hv2-score{font-size:8px;color:var(--green);min-width:55px;text-align:right}.hv2-empty{padding:10px;text-align:center;color:var(--dim);font-size:9px;background:var(--panel2);border-radius:7px}
+.uni-input-box{background:linear-gradient(135deg,rgba(0,229,255,.08),rgba(179,136,255,.06));border:2px solid var(--accent);border-radius:12px;padding:16px;margin-bottom:14px}.uni-title{font-family:Orbitron,monospace;font-size:11px;letter-spacing:3px;color:var(--accent);margin-bottom:4px;text-align:center}.uni-sub{font-size:9px;color:var(--dim);text-align:center;margin-bottom:12px;letter-spacing:1px;line-height:1.55}.uni-date-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:8px;padding:8px 10px}.uni-date-label{font-size:9px;color:var(--dim);letter-spacing:1px;white-space:nowrap}.uni-date-input{flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:#fff;font-size:11px;font-family:inherit;color-scheme:dark}.uni-input-row{display:flex;gap:8px}.uni-input{flex:1;background:var(--panel2);border:2px solid var(--border);border-radius:9px;padding:14px;font-family:Orbitron,monospace;font-size:22px;font-weight:700;letter-spacing:8px;color:#fff;outline:none;text-align:center}.uni-input:focus{border-color:var(--accent);box-shadow:0 0 16px rgba(0,229,255,.25)}.btn-uni-add{background:linear-gradient(135deg,var(--accent),var(--purple));color:#000;border:none;border-radius:9px;padding:14px 20px;font-family:Orbitron,monospace;font-size:11px;font-weight:700;cursor:pointer}.btn{padding:9px 11px;border-radius:7px;font-family:Orbitron,monospace;font-size:8px;letter-spacing:1px;cursor:pointer;background:var(--panel2);color:var(--text);border:1px solid var(--border)}.btn:hover{border-color:var(--accent);color:var(--accent)}.btn-gold{border-color:var(--gold);color:var(--gold)}.btn-red{border-color:var(--red);color:var(--red)}
+.result-box{background:var(--panel);border:1px solid var(--gold);border-radius:10px;padding:14px;margin-bottom:10px}.result-title{font-family:Orbitron,monospace;font-size:9px;letter-spacing:2px;color:var(--gold);margin-bottom:10px}.result-input-row{display:flex;gap:6px}.result-input{flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:7px;padding:11px;font-family:Orbitron,monospace;font-size:16px;font-weight:700;letter-spacing:6px;color:#fff;outline:none}.btn-submit-result{background:var(--gold);color:#000;font-size:9px;padding:11px 14px;border:none;border-radius:7px;font-family:Orbitron,monospace;cursor:pointer;font-weight:700}.result-msg{font-size:10px;margin-top:8px;padding:8px;border-radius:6px;display:none}.result-msg.show{display:block}.result-msg.jp{background:rgba(0,230,118,.1);color:var(--green);border:1px solid var(--green)}.result-msg.zonk{background:rgba(255,61,113,.1);color:var(--accent2);border:1px solid var(--accent2)}
+.analysis{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px}.analysis-title{font-family:Orbitron,monospace;font-size:9px;letter-spacing:2px;color:var(--accent);margin-bottom:8px}.analysis-sub{font-size:8px;color:var(--dim);line-height:1.6;margin-bottom:9px}.grid6{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}.cell{background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:7px 2px;text-align:center}.cell b{font-family:Orbitron;font-size:13px;color:#fff}.cell small{display:block;font-size:6px;color:var(--dim);margin-top:2px}.meter{height:4px;background:var(--dim2);border-radius:2px;overflow:hidden;margin-top:5px}.meter i{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--accent));border-radius:2px}.chips{display:flex;gap:4px;flex-wrap:wrap}.chip{padding:4px 7px;border:1px solid var(--dim2);border-radius:6px;background:var(--panel2);font-size:7px;color:var(--dim)}
+.hist-card{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:9px 10px;margin-top:8px}.hist-head{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}.hist-date{font-family:Orbitron;color:var(--gold);font-size:9px}.hist-status.jp{color:var(--green);font-weight:700;font-size:9px}.hist-status.zonk{color:var(--accent2);font-size:9px}.rawresult{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px}.mini{padding:6px;border:1px solid var(--border);border-radius:5px}.mini label{display:block;font-size:6px;color:var(--dim);letter-spacing:1px;margin-bottom:3px}.mini b{font-family:Orbitron;font-size:11px;color:#fff}.match-box{margin-top:6px;padding:7px;border:1px solid rgba(255,201,71,.35);border-radius:6px}.match-title{font-size:7px;color:var(--gold);letter-spacing:1px;margin-bottom:4px}.match-chip{display:inline-block;padding:4px 6px;margin:2px;border-radius:5px;border:1px solid rgba(255,201,71,.55);background:rgba(255,201,71,.1);font-family:Orbitron;font-size:7px;color:var(--gold)}
+.session-box{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:11px;margin-bottom:10px}.session-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px}.session-title{font-family:Orbitron,monospace;font-size:10px;letter-spacing:2px;color:var(--green)}.slot-badge{font-size:7px;color:var(--dim);border:1px solid var(--border);padding:4px 6px;border-radius:5px}.slot-grid{display:grid;grid-template-columns:1fr;gap:9px}.slot-card{background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:10px}.slot-title{font-family:Orbitron,monospace;color:var(--accent);font-size:8px;letter-spacing:1.5px;margin-bottom:7px}.slot-input-row{display:flex;gap:6px}.slot-raw{flex:1;min-width:0;background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:10px;font-family:Orbitron,monospace;font-size:16px;font-weight:700;letter-spacing:4px;color:#fff;text-align:center;outline:none}.slot-raw:focus{border-color:var(--accent)}.slot-gen{background:var(--accent);color:#000;border:none;border-radius:7px;padding:10px 9px;font-family:Orbitron,monospace;font-size:8px;font-weight:700;cursor:pointer}.slot-result-row{display:flex;gap:6px;margin-top:7px}.slot-result{flex:1;background:var(--panel);border:1px solid var(--gold);border-radius:7px;padding:9px;font-family:Orbitron,monospace;font-size:14px;font-weight:700;letter-spacing:4px;color:#fff;text-align:center;outline:none}.slot-save{background:var(--gold);color:#000;border:none;border-radius:7px;padding:9px 10px;font-family:Orbitron,monospace;font-size:8px;font-weight:700;cursor:pointer}.slot-msg{font-size:8px;min-height:13px;margin-top:5px;color:var(--dim)}.slot-candidates{margin-top:8px}.slot-candidates .hv2-mode{margin-bottom:7px}.slot-status{font-size:8px;margin-top:6px}.slot-status.jp{color:var(--green)}.slot-status.zonk{color:var(--accent2)}.note{font-size:8px;color:var(--dim);line-height:1.6}.statusline{font-size:8px;color:var(--dim);min-height:14px;margin-top:6px}.footer-note{text-align:center;font-size:7px;color:var(--dim);padding:12px}.danger{color:var(--red)}.miss-summary{background:var(--panel);border:1px solid var(--accent2);border-radius:10px;padding:12px 14px;margin-bottom:10px}.miss-summary-title{font-family:Orbitron,monospace;font-size:10px;letter-spacing:2px;color:var(--accent2);margin-bottom:8px}.miss-pool-block{margin-bottom:9px}.miss-pool-label{font-size:8px;color:var(--gold);letter-spacing:1px;margin-bottom:5px}.miss-pos-grid{display:grid;gap:4px}.miss-pos-cell{background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px 4px;text-align:center}.miss-pos-cell small{display:block;font-size:6px;color:var(--dim)}.miss-pos-cell b{font-family:Orbitron;font-size:11px;color:#fff}.miss-pos-cell .avgdelta{font-size:6px;color:var(--dim);margin-top:2px;display:block}.miss-worst{font-size:7px;color:var(--accent2);margin-top:4px}
+.miss-card{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:9px 10px;margin-top:8px}.miss-head{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px}.miss-date{font-family:Orbitron;color:var(--gold);font-size:9px}.miss-tag{font-size:7px;color:var(--dim)}.miss-status{font-size:8px;font-weight:700}.miss-status.jp{color:var(--green)}.miss-status.zonk{color:var(--accent2)}.miss-poolrow{border-top:1px dashed var(--border);padding-top:6px;margin-top:6px}.miss-poolrow:first-child{border-top:none;margin-top:0;padding-top:0}.miss-poollabel{font-size:7px;color:var(--accent);letter-spacing:1px;margin-bottom:4px}.miss-digitrow{display:flex;gap:4px;flex-wrap:wrap}.miss-digit{min-width:34px;padding:5px 4px;border-radius:5px;text-align:center;border:1px solid var(--border);background:var(--panel)}.miss-digit.ok{border-color:var(--green)}.miss-digit.bad{border-color:var(--accent2)}.miss-digit b{display:block;font-family:Orbitron;font-size:12px;color:#fff}.miss-digit small{font-size:6px;color:var(--dim)}.miss-digit.bad small{color:var(--accent2)}.miss-cand-info{font-size:7px;color:var(--dim);margin-top:5px}.miss-pool-sub{font-size:7px;color:var(--dim);line-height:1.6;margin-bottom:8px}
+.heat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:5px}.heat-cell{border:1px solid rgba(179,136,255,.4);border-radius:6px;padding:6px 3px;text-align:center;cursor:pointer;transition:transform .1s}.heat-cell:active{transform:scale(.95)}.heat-cell b{display:block;font-family:Orbitron;font-size:10px;color:#fff;letter-spacing:1px}.heat-cell small{font-size:7px;color:var(--dim)}
+.pattern-detail-box{margin-top:10px;padding:10px;border:1px solid var(--purple);border-radius:8px;background:rgba(179,136,255,.06)}.pattern-detail-title{font-family:Orbitron,monospace;font-size:9px;letter-spacing:1.5px;color:var(--purple);margin-bottom:6px}.pattern-detail-insight{font-size:8px;color:var(--text);line-height:1.6;margin-bottom:8px}.pattern-detail-dates{display:flex;flex-wrap:wrap;gap:3px}
+.n-badge{color:var(--accent2);font-size:6px}.ci-range{color:var(--dim);font-size:6px}
+@media(max-width:520px){.uni-input-row{flex-direction:column}.btn-uni-add{width:100%}.grid6{grid-template-columns:repeat(3,1fr)}.rawresult{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="header"><div class="header-tag">SISTEM KANDIDAT EKSPERIMENTAL</div><h1>A-F <em>Modif</em></h1><div class="header-sub">BOOT PRNG · 3 SESI · 30 × 4H · 30 × 3H · 30 × 2H · SUPABASE</div><div id="saveState" style="font-size:8px;color:var(--green);margin-top:4px">● SUPABASE MODE — DATA UTAMA TERSIMPAN DI SUPABASE</div><div id="liveClock" style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--gold);margin-top:6px">🕒 --:--:--</div></div>
+<div class="tabs"><div class="tab active" id="tab-generator" onclick="switchPage('generator')">🧬 GENERATOR</div><div class="tab blue" id="tab-analysis" onclick="switchPage('analysis')">🧩 2 ANALISA RAW</div><div class="tab gold" id="tab-history" onclick="switchPage('history')">🏆 RIWAYAT LENGKAP</div><div class="tab red" id="tab-miss" onclick="switchPage('miss')">🎯 ANALISA MELESET</div><div class="tab purple" id="tab-heatmap" onclick="switchPage('heatmap')">🔥 HEATMAP POLA</div><div class="tab gold" id="tab-reco" onclick="switchPage('reco')">🧠 REKOMENDASI & REVIEW</div></div>
+<div class="page active" id="page-generator">
+  <div class="hv2-box"><div class="hv2-title">🧬 BOOT PRNG — 3 SESI</div><div class="hv2-sub">Engine baru 100% independen. Tampilan mengikuti pola Harian V2: <b style="color:#fff">13.30 = 1 slot</b>, <b style="color:#fff">18.30 = 1 slot</b>, <b style="color:#fff">23.00 = 1 slot</b>. Setiap slot memiliki RAW 6 digit, RESULT 4 digit, dan kandidat BOOT PRNG sendiri.</div></div>
+  <div class="uni-input-box"><div class="uni-title">BOOT PRNG · 3 SESI HARIAN · FULL SUPABASE</div><div class="uni-sub">Isi RAW per slot. Generate kandidat 30×4H + 30×3H + 30×2H secara independen. RESULT disimpan per slot.</div><div class="uni-date-row"><span class="uni-date-label">📅 TANGGAL</span><input class="uni-date-input" id="entryDate" type="date"><button class="btn" id="calBtn" onclick="openCalendar()" style="flex:0 0 auto">🗓 KALENDER</button></div>
+<div id="calPopupOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center" onclick="if(event.target===this)closeCalendar()">
+  <div id="calPopup" style="background:var(--panel);border:2px solid var(--purple);border-radius:12px;padding:14px;width:min(320px,90vw);max-height:80vh;overflow:auto"></div>
+</div></div>
+  <div id="sessionBoard"></div><div id="dailyHistory"></div>
+</div>
+<div class="page" id="page-analysis"><div id="analysisPage"></div></div>
+<div class="page" id="page-history"><div id="historyPage"></div></div>
+<div class="page" id="page-miss"><div id="missPage"></div></div>
+<div class="page" id="page-heatmap"><div id="heatmapPage"></div></div>
+<div class="page" id="page-reco"><div id="recoPage"></div></div>
+<div class="footer-note">BOOT PRNG adalah generator kandidat deterministik/eksperimental, bukan jaminan bahwa hasil acak dapat diprediksi.</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL=''; // TODO: isi dengan Project URL Supabase — kamu yang akan sambungkan sendiri
+const SUPABASE_ANON_KEY=''; // TODO: isi dengan anon/publishable key
+let sb=null;try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY)}catch(e){sb=null}
+let slots=[]; let history=[]; let sessionRecords=[];
+const SESSION_CONFIG=[{key:'1330',label:'13.30',slots:1},{key:'1830',label:'18.30',slots:1},{key:'2300',label:'23.00',slots:1}];
+const LETTERS=['A','B','C','D','E','F'];
+const FIXED_RAW='ABCDEF';
+const $=id=>document.getElementById(id);
+function today(){return new Date().toISOString().slice(0,10)}
+$('entryDate').value=today();
+let calState={year:0,month:0};
+function calPad2(n){return String(n).padStart(2,'0')}
+async function fetchDatesWithData(year,month){
+  if(!sb)return new Set();
+  const start=`${year}-${calPad2(month+1)}-01`;
+  const lastDay=new Date(year,month+1,0).getDate();
+  const end=`${year}-${calPad2(month+1)}-${calPad2(lastDay)}`;
+  try{
+    const {data,error}=await sb.from('boot_prng_history').select('entry_date').gte('entry_date',start).lte('entry_date',end);
+    if(error||!data)return new Set();
+    return new Set(data.map(r=>String(r.entry_date)));
+  }catch(e){return new Set();}
+}
+async function renderCalendar(){
+  const {year,month}=calState;
+  const datesWithData=await fetchDatesWithData(year,month);
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const monthNames=['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
+  const selected=$('entryDate').value;
+  const todayStr=today();
+  let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <button class="btn" onclick="changeCalMonth(-1)">‹</button>
+    <div style="font-family:Orbitron,monospace;font-size:11px;color:var(--purple);letter-spacing:1px">${monthNames[month]} ${year}</div>
+    <button class="btn" onclick="changeCalMonth(1)">›</button>
+  </div>`;
+  html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:8px;color:var(--dim);text-align:center;margin-bottom:4px">'+['M','S','S','R','K','J','S'].map(d=>`<div>${d}</div>`).join('')+'</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">';
+  for(let i=0;i<firstDay;i++)html+='<div></div>';
+  for(let day=1;day<=daysInMonth;day++){
+    const dateStr=`${year}-${calPad2(month+1)}-${calPad2(day)}`;
+    const hasData=datesWithData.has(dateStr);
+    const isSelected=dateStr===selected;
+    const isToday=dateStr===todayStr;
+    const boxStyle=isSelected?'background:var(--purple);color:#000;font-weight:700;':(isToday?'border:1px solid var(--gold);color:var(--gold);':'color:var(--text)');
+    html+=`<div onclick="pickCalDate('${dateStr}')" style="cursor:pointer;text-align:center;padding:7px 2px;border-radius:6px;${boxStyle}">${day}${hasData?'<div style="width:4px;height:4px;border-radius:50%;background:'+(isSelected?'#000':'var(--green)')+';margin:2px auto 0"></div>':''}</div>`;
+  }
+  html+='</div><div style="font-size:7px;color:var(--dim);margin-top:10px;text-align:center">🟢 tanggal ada data · klik untuk pindah</div>';
+  $('calPopup').innerHTML=html;
+}
+async function changeCalMonth(delta){
+  calState.month+=delta;
+  if(calState.month<0){calState.month=11;calState.year--;}
+  if(calState.month>11){calState.month=0;calState.year++;}
+  await renderCalendar();
+}
+async function openCalendar(){
+  const d=new Date(($('entryDate').value||today())+'T00:00:00');
+  calState={year:d.getFullYear(),month:d.getMonth()};
+  $('calPopupOverlay').style.display='flex';
+  await renderCalendar();
+}
+function closeCalendar(){$('calPopupOverlay').style.display='none';}
+function pickCalDate(dateStr){
+  $('entryDate').value=dateStr;
+  closeCalendar();
+  loadHistoryFromSupabase(true);
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function initSlots(){slots=[];let id=0;SESSION_CONFIG.forEach(sess=>{for(let n=1;n<=sess.slots;n++)slots.push({id:id++,session:sess.key,label:sess.label,slot:n,raw:'',result:'',engine:null})})}
+initSlots();
+function mix32(x){x|=0;x=Math.imul(x^(x>>>16),0x7feb352d);x=Math.imul(x^(x>>>15),0x846ca68b);return (x^(x>>>16))>>>0}
+function seedFromContext(ctx,tag){let s=0x811c9dc5;for(let i=0;i<ctx.length;i++){s=Math.imul(s^ctx.charCodeAt(i),16777619);s=mix32(s+i*0x9e3779b9)}for(let i=0;i<tag.length;i++){s=Math.imul(s^tag.charCodeAt(i),16777619);s=mix32(s)}return s>>>0}
+function mulberry(seed){let a=seed>>>0;return function(){a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296}}
+function randInt(r,max){return Math.floor(r()*max)}
+function letterIndex(ch){return LETTERS.indexOf(ch)}
+function letterBalance(c){const f=Array(6).fill(0);for(const ch of c)f[letterIndex(ch)]++;const unique=f.filter(Boolean).length,max=Math.max(...f);const repeatPenalty=max>2?(max-2)*.18:0;return Math.max(0,Math.min(1,.55+unique*.12-repeatPenalty))}
+function diversify(list,n){const out=[],used=new Set(),sig=new Set();for(const x of list){if(used.has(x.cand))continue;const chars=[...x.cand],f=Array(6).fill(0);chars.forEach(ch=>f[letterIndex(ch)]++);const max=Math.max(...f),maxLetter=f.indexOf(max),signature=f.join('')+'|'+maxLetter;if(sig.has(signature)&&out.length<Math.floor(n*.55))continue;used.add(x.cand);sig.add(signature);out.push(x);if(out.length===n)break}if(out.length<n)for(const x of list)if(!used.has(x.cand)){used.add(x.cand);out.push(x);if(out.length===n)break}return out}
+function makeCandidates(ctx,len,tag){const r=mulberry(seedFromContext(ctx,tag)),pool=new Map(),target=Math.max(900,len*30);for(let i=0;i<target;i++){let c='';for(let p=0;p<len;p++)c+=LETTERS[randInt(r,6)];if(!pool.has(c))pool.set(c,{cand:c,prng:i,score:0})}const arr=[...pool.values()];arr.forEach(x=>{const balance=letterBalance(x.cand),random=r();x.score=Math.max(0,Math.min(1,.35*balance+.65*random))});arr.sort((a,b)=>b.score-a.score||a.cand.localeCompare(b.cand));return diversify(arr,30).slice(0,30).map((x,i)=>({rank:i+1,digits:x.cand,score:x.score,stream:tag,prngIndex:x.prng}))}
+function buildEngine(raw,session,slot,date){const ctx=date+'-'+session+'-S'+slot;const tagBase=session+'-S'+slot;return {date,session,slot,raw,candidates4:makeCandidates(ctx,4,tagBase+'-4H'),candidates3:makeCandidates(ctx,3,tagBase+'-3H'),candidates2:makeCandidates(ctx,2,tagBase+'-2H'),result:'',matches:null,status:'PENDING',createdAt:new Date().toISOString()}}
+function candidateSection(label,list){return `<div class="hv2-mode"><div class="hv2-mode-head"><div class="hv2-mode-title">${label} · ${list.length}/30 KANDIDAT</div><div class="hv2-stat">stream PRNG independen</div></div><div class="hv2-list">${list.map(c=>`<div class="hv2-item"><span class="hv2-rank">#${c.rank}</span><span class="hv2-cand">${esc(c.digits)}</span><span style="font-size:7px;color:var(--dim)">score</span><span class="hv2-score">${(c.score*100).toFixed(2)}</span></div>`).join('')}</div></div>`}
+function analysisSummary(e){
+  const res=e.result||'';
+  if(!res||res.length!==4){
+    return `<div class="analysis"><div class="analysis-title">🧩 ANALISA HURUF RESULT</div><div class="analysis-sub">Versi ini tidak memakai RAW numerik — statistik di sini dihitung dari RESULT aktual begitu sudah disimpan.</div><div class="hv2-empty">Belum ada RESULT tersimpan untuk slot ini.</div></div>`;
+  }
+  const chars=[...res];
+  const freq=Array(6).fill(0);
+  chars.forEach(ch=>{const idx=letterIndex(ch);if(idx>=0)freq[idx]++});
+  const unique=new Set(chars).size;
+  const maxCount=Math.max(...freq);
+  const maxLetter=LETTERS[freq.indexOf(maxCount)];
+  return `<div class="analysis"><div class="analysis-title">🧩 ANALISA HURUF RESULT</div><div class="analysis-sub">Dihitung dari RESULT aktual (bukan RAW) — sebaran huruf A-F pada 4 posisi RESULT.</div><div class="grid6" style="grid-template-columns:repeat(4,1fr)">${chars.map((ch,i)=>`<div class="cell"><small>P${i+1}</small><b>${ch}</b></div>`).join('')}</div><div class="chips" style="margin-top:7px">${LETTERS.map((l,i)=>`<span class="chip">${l}:${freq[i]}</span>`).join('')}<span class="chip">UNIK ${unique}/4</span><span class="chip">PALING SERING: ${maxLetter} (${maxCount}x)</span></div></div>`;
+}
+function getSessionSlots(session){return slots.filter(s=>s.session===session).sort((a,b)=>a.slot-b.slot)}
+
+function matchesFor(list,result,n){
+  if(!Array.isArray(list)||!result||String(result).length!==4)return null;
+  const target=String(result).slice(-n);
+  const hit=list.find(c=>String(c.digits).slice(-n)===target);
+  return hit?hit.rank:null;
+}
+function crossMatch(engine,result){
+  if(!engine||!result||String(result).length!==4)return {H4:null,H3:null,H2:null};
+  return {
+    H4:matchesFor(engine.candidates4,result,4),
+    H3:matchesFor(engine.candidates3,result,3),
+    H2:matchesFor(engine.candidates2,result,2)
+  };
+}
+function crossEvaluate(sessionKey){
+  const ss=getSessionSlots(sessionKey),results=ss.map(s=>s.result||'');
+  ss.forEach(rawSlot=>{
+    if(!rawSlot.engine)return;
+    rawSlot.cross=[];
+    results.forEach((res,ri)=>{
+      if(res){
+        const m=crossMatch(rawSlot.engine,res);
+        rawSlot.cross.push({
+          resultSlot:ri+1,result:res,matches:m,
+          status:Object.values(m).some(Boolean)?'JP':'ZONK'
+        });
+      }
+    });
+    rawSlot.status=rawSlot.cross.some(x=>x.status==='JP')?'JP':
+      (rawSlot.cross.length?'ZONK':'PENDING');
+  });
+  return ss;
+}
+function crossText(s){
+  return (s.cross||[]).map(x=>
+    `${x.status==='JP'?'🏆':'💀'} RESULT ${x.resultSlot}`+
+    `${Object.values(x.matches||{}).some(Boolean)?
+      ` · ${x.matches.H4?'4D #'+x.matches.H4+' ':''}${x.matches.H3?'· 3D #'+x.matches.H3+' ':''}${x.matches.H2?'· 2D #'+x.matches.H2:''}`:''}`
+  ).join('  ');
+}
+function rowFromSlot(s,date){
+  return {
+    id:`${date}_${s.session}_S${s.slot}`,
+    entry_date:date,
+    session:s.session,
+    session_label:s.label,
+    slot:s.slot,
+    raw:s.raw||null,
+    result:s.result||null,
+    status:s.status||'PENDING',
+    matches:s.cross||[],
+    candidates4:s.engine?.candidates4||null,
+    candidates3:s.engine?.candidates3||null,
+    candidates2:s.engine?.candidates2||null,
+    analysis:s.engine?.analysis||null,
+    engine:'BOOT-PRNG-v1.3-RANDOM-BALANCED-CROSS',
+    updated_at:new Date().toISOString()
+  };
+}
+async function saveSessionToSupabase(sessionKey){
+  if(!sb){
+    $('saveState').textContent='⚠ SUPABASE BELUM DIKONFIGURASI — DATA TIDAK DISIMPAN';
+    return false;
+  }
+  const date=$('entryDate').value||today();
+  const ss=getSessionSlots(sessionKey);
+  const rows=ss.filter(s=>s.engine).map(s=>rowFromSlot(s,date));
+  if(!rows.length)return false;
+  const {error}=await sb.from('boot_prng_history').upsert(rows,{onConflict:'id'});
+  if(error){
+    $('saveState').textContent='⚠ GAGAL SIMPAN SUPABASE: '+error.message;
+    return false;
+  }
+  await loadHistoryFromSupabase(false);
+  $('saveState').textContent='● TERSIMPAN SUPABASE · '+history.length+' slot';
+  return true;
+}
+async function saveResult(id){
+  const s=slots[id];
+  if(!s.engine){
+    $('msg-'+id).textContent='⚠ Generate dulu.';
+    return;
+  }
+  const result=$('result-'+id).value.toUpperCase().replace(/[^A-F]/g,'').slice(0,4);
+  $('result-'+id).value=result;
+  if(result.length!==4){
+    $('msg-'+id).textContent='⚠ RESULT harus tepat 4 huruf (A-F).';
+    return;
+  }
+  s.result=result;
+  s.engine.result=result;
+  crossEvaluate(s.session);
+  const ok=await saveSessionToSupabase(s.session);
+  await saveComplexPatternAnalysis(s.session);
+  await saveMissInsights();
+  await saveLetterPatterns(s);
+  await saveRawAnalysisRow(s);
+  await checkRecommendationOutcomes(result,s);
+  await savePatternPredictions();
+  renderSessions();
+  renderHistoryPage();
+  renderAnalysisPage();
+  $('msg-'+id).textContent=ok?'✓ RESULT tersimpan ke Supabase.':'⚠ RESULT belum tersimpan.';
+}
+async function loadHistoryFromSupabase(render=true){
+  if(!sb){
+    $('saveState').textContent='⚠ KLIEN SUPABASE GAGAL DIMUAT';
+    history=[];sessionRecords=[];
+    return;
+  }
+  const {data,error}=await sb.from('boot_prng_history')
+    .select('*')
+    .order('entry_date',{ascending:false})
+    .order('session',{ascending:true})
+    .order('slot',{ascending:true});
+  if(error){
+    $('saveState').textContent='⚠ GAGAL BACA SUPABASE: '+error.message;
+    history=[];sessionRecords=[];
+    return;
+  }
+  sessionRecords=data||[];
+  history=sessionRecords;
+  hydrateSelectedDate();
+  if(render){
+    renderSessions();
+    renderHistoryPage();
+  }
+}
+function hydrateSelectedDate(){
+  const date=$('entryDate').value||today();
+  initSlots();
+  const rows=history.filter(r=>String(r.entry_date)===String(date));
+  rows.forEach(r=>{
+    const s=slots.find(x=>x.session===r.session&&x.slot===Number(r.slot));
+    if(!s)return;
+    s.raw=r.raw||'';
+    s.result=r.result||'';
+    s.status=r.status||'PENDING';
+    s.cross=Array.isArray(r.matches)?r.matches:[];
+    if(r.candidates4||r.candidates3||r.candidates2){
+      s.engine={
+        date:date,session:s.session,slot:s.slot,raw:s.raw,
+        analysis:r.analysis||{position:{freq:[],sum:0,mean:0,unique:0,even:0,high:0,low:0,posW:[]},relation:{adj:[],mirror:[],deltas:[]}},
+        candidates4:r.candidates4||[],
+        candidates3:r.candidates3||[],
+        candidates2:r.candidates2||[],
+        result:s.result,matches:null,status:s.status,createdAt:r.created_at||r.updated_at
+      };
+    }
+  });
+  SESSION_CONFIG.forEach(sess=>crossEvaluate(sess.key));
+}
+function renderSessions(){
+  let html='';
+  SESSION_CONFIG.forEach(sess=>{
+    crossEvaluate(sess.key);
+    html+=`<div class="session-box"><div class="session-head">
+      <div class="session-title">🕐 SESI ${sess.label}</div>
+      <div class="slot-badge">${sess.slots} SLOT RAW + ${sess.slots} SLOT RESULT</div>
+    </div><div class="slot-grid">`;
+    for(let n=1;n<=sess.slots;n++){
+      const x=slots.find(v=>v.session===sess.key&&v.slot===n);
+      html+=renderSlot(x);
+    }
+    html+='</div></div>';
+  });
+  $('sessionBoard').innerHTML=html;
+  renderDailyHistory();
+}
+function renderSlot(s){
+  const e=s.engine;
+  let candidate=e?analysisSummary(e)+`<div class="slot-candidates">
+    ${candidateSection('4H',e.candidates4)}
+    ${candidateSection('3H',e.candidates3)}
+    ${candidateSection('2H',e.candidates2)}
+  </div>`:'';
+  let status=e&&s.cross?.length?
+    `<div class="slot-status ${s.status==='JP'?'jp':'zonk'}">
+      ${s.status==='JP'?'🏆 JP':'💀 ZONK'} · ${esc(crossText(s))}
+    </div>`:'';
+  return `<div class="slot-card">
+    <div class="slot-title">BOOT PRNG A-F · SLOT ${s.slot}</div>
+    <div class="slot-input-row">
+      <button class="slot-gen" onclick="generateSlot(${s.id})" style="width:100%">⚡ GENERATE KANDIDAT</button>
+    </div>
+    <div class="slot-result-row">
+      <input class="slot-result" id="result-${s.id}" maxlength="4" style="text-transform:uppercase" value="${esc(s.result)}" placeholder="RESULT 4 HURUF (A-F)" oninput="this.value=this.value.toUpperCase().replace(/[^A-F]/g,'').slice(0,4)">
+      <button class="slot-save" onclick="saveResult(${s.id})">SIMPAN</button>
+    </div>
+    <div class="slot-msg" id="msg-${s.id}">
+      ${e?'✓ Kandidat aktif · 90 kandidat tersedia':'Klik GENERATE untuk membuat kandidat.'}
+    </div>
+    ${status}${candidate}
+  </div>`;
+}
+async function generateSlot(id){
+  const s=slots[id];
+  const btn=document.querySelector(`button[onclick="generateSlot(${id})"]`);
+  if(btn){btn.disabled=true;btn.textContent='⏳ GENERATE...';}
+  try{
+    s.raw=FIXED_RAW;
+    s.result='';
+    s.engine=buildEngine(FIXED_RAW,s.session,s.slot,$('entryDate').value||today());
+    s.engine.result='';
+    s.engine.status='PENDING';
+    s.cross=[];
+    s.status='PENDING';
+    $('result-'+id).value='';
+    const ok=await saveSessionToSupabase(s.session);
+    renderSessions();
+    renderAnalysisPage();
+    const fresh=slots[id];
+    if($('msg-'+id))$('msg-'+id).textContent=ok?
+      '✓ BOOT PRNG selesai · 90 kandidat tersimpan Supabase.':
+      '⚠ Kandidat dibuat, tetapi gagal tersimpan ke Supabase.';
+  }catch(err){
+    console.error(err);
+    $('msg-'+id).textContent='⚠ Generate error: '+(err?.message||err);
+  }
+}
+function groupHistory(){
+  const groups=new Map();
+  history.forEach(r=>{
+    const key=`${r.entry_date}_${r.session}`;
+    if(!groups.has(key))groups.set(key,{
+      entry_date:r.entry_date,session:r.session,
+      session_label:r.session_label||r.session,rows:[]
+    });
+    groups.get(key).rows.push(r);
+  });
+  return [...groups.values()].sort((a,b)=>
+    String(b.entry_date).localeCompare(String(a.entry_date))||
+    String(a.session).localeCompare(String(b.session))
+  );
+}
+function renderDailyHistory(){
+  const date=$('entryDate').value||today();
+  const groups=groupHistory().filter(g=>String(g.entry_date)===String(date));
+  if(!groups.length){
+    $('dailyHistory').innerHTML='';
+    return;
+  }
+  $('dailyHistory').innerHTML=
+    `<div class="hv2-box">
+      <div class="hv2-title">📒 RIWAYAT HARIAN · ${esc(date)}</div>
+      <div class="hv2-sub">Crossing aktif. RAW Slot 1 ↔ Result 1/2 dan RAW Slot 2 ↔ Result 1/2. 🏆 JP · 💀 ZONK.</div>
+    </div>`+
+    groups.map(renderSessionHistory).join('');
+}
+function switchPage(p){
+  ['generator','analysis','history','miss','heatmap','reco'].forEach(x=>{
+    $('page-'+x).classList.toggle('active',x===p);
+    $('tab-'+x).classList.toggle('active',x===p);
+  });
+  if(p==='analysis')renderAnalysisPage();
+  if(p==='history')renderHistoryPage();
+  if(p==='miss')renderMissPage();
+  if(p==='heatmap')renderHeatmapPage();
+  if(p==='reco')renderRecommendationPage();
+}
+function renderAnalysisPage(){
+  const ready=slots.filter(s=>s.engine);
+  if(!ready.length){
+    $('analysisPage').innerHTML='<div class="hv2-empty">Belum ada kandidat. Klik GENERATE pada salah satu slot.</div>';
+    return;
+  }
+  $('analysisPage').innerHTML=ready.map(e=>
+    `<div class="hv2-box"><div class="hv2-title">SESI ${e.label} · SLOT ${e.slot}</div>${analysisSummary(e.engine)}</div>`
+  ).join('');
+}
+function renderHistoryPage(){
+  const groups=groupHistory();
+  if(!groups.length){
+    $('historyPage').innerHTML='<div class="hv2-empty">Belum ada riwayat Supabase. Generate RAW atau simpan RESULT untuk membuat arsip.</div>';
+    return;
+  }
+  $('historyPage').innerHTML=
+    `<div class="hv2-box">
+      <div class="hv2-title">🏆 RIWAYAT LENGKAP — BOOT PRNG</div>
+      <div class="hv2-sub">Full Supabase. 🏆 = JP · 💀 = ZONK.</div>
+    </div>`+
+    groups.map(renderSessionHistory).join('');
+}
+function renderSessionHistory(g){
+  const rows=(g.rows||[]).sort((a,b)=>(a.slot||0)-(b.slot||0));
+  let body='';
+  rows.forEach(r=>{
+    const cx=Array.isArray(r.matches)?r.matches:[];
+    const st=r.status==='JP'?'JP':(r.status==='ZONK'?'ZONK':'PENDING');
+    const status=st==='JP'?'🏆 JP':st==='ZONK'?'💀 ZONK':'⏳ PENDING';
+    body+=`<div class="hist-card">
+      <div class="hist-head">
+        <div><span class="hist-date">${esc(g.entry_date)}</span>
+          <span style="font-size:8px;color:var(--accent)">SESI ${esc(g.session_label)} · RAW SLOT ${r.slot}</span>
+        </div>
+        <div class="hist-status ${st==='JP'?'jp':'zonk'}">${status}</div>
+      </div>
+      <div class="rawresult">
+        <div class="mini"><label>RAW 6 DIGIT</label><b>${esc(r.raw||'-')}</b></div>
+        <div class="mini"><label>RESULT</label><b style="color:var(--gold)">${esc(r.result||'-')}</b></div>
+      </div>
+      <div class="match-box">
+        <div class="match-title">🎯 HASIL RAW SLOT ${r.slot}</div>
+        ${cx.length?cx.map(x=>
+          `<span class="match-chip">
+            ${x.status==='JP'?'🏆':'💀'} RESULT ${x.resultSlot}: ${esc(x.result)}
+            ${x.matches?.H4?' · 4D #'+x.matches.H4:''}
+            ${x.matches?.H3?' · 3D #'+x.matches.H3:''}
+            ${x.matches?.H2?' · 2D #'+x.matches.H2:''}
+          </span>`).join(''):
+          '<span style="font-size:8px;color:var(--dim)">Menunggu RESULT.</span>'}
+      </div>
+    </div>`;
+  });
+  return `<div class="hv2-box"><div class="hv2-title">${esc(g.session_label)} · ${esc(g.entry_date)}</div>${body}</div>`;
+}
+async function clearHistory(){
+  if(!sb)return;
+  if(!confirm('Hapus seluruh riwayat BOOT PRNG dari Supabase?'))return;
+  const {error}=await sb.from('boot_prng_history').delete().not('id','is',null);
+  if(error){alert('Gagal hapus: '+error.message);return}
+  history=[];sessionRecords=[];initSlots();renderSessions();renderHistoryPage();
+  $('saveState').textContent='● SUPABASE · RIWAYAT KOSONG';
+}
+function exportHistory(){
+  const blob=new Blob([JSON.stringify({engine:'BOOT-PRNG-v1.3',exportedAt:new Date().toISOString(),history},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='A-F_BOOT_PRNG_5SESI_history.json';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+// ===== ANALISA POLA MELESET: kandidat vs result, per posisi, per tanggal =====
+const MISS_POOLS=[{key:'candidates4',label:'4H',n:4},{key:'candidates3',label:'3H',n:3},{key:'candidates2',label:'2H',n:2}];
+function bestCandidateFor(list,target,n){
+  if(!Array.isArray(list)||!list.length||!target||target.length!==n)return null;
+  let best=null;
+  for(const c of list){
+    const cd=String(c.digits||'');
+    if(cd.length!==n)continue;
+    let matchCount=0,distSum=0;const positions=[];
+    for(let i=0;i<n;i++){
+      const cv=letterIndex(cd[i]),tv=letterIndex(target[i]);
+      const match=cd[i]===target[i],dist=Math.abs(cv-tv);
+      if(match)matchCount++;
+      distSum+=dist;
+      positions.push({pos:i+1,letterCand:cd[i],letterTarget:target[i],letterMatch:match,letterDistance:dist});
+    }
+    const scoreKey=matchCount*1000-distSum;
+    if(!best||scoreKey>best.scoreKey)best={rank:c.rank,digits:cd,score:c.score,positions,matchCount,distSum,scoreKey,isExact:matchCount===n};
+  }
+  return best;
+}
+function computeMissAnalysis(){
+  const rows=[];const posStats={};
+  MISS_POOLS.forEach(p=>{posStats[p.label]=Array.from({length:p.n},()=>({total:0,match:0,distSum:0}))});
+  const bySession={};
+  (history||[]).forEach(r=>{
+    const key=r.entry_date+'|'+r.session;
+    (bySession[key]=bySession[key]||[]).push(r);
+  });
+  (history||[]).forEach(r=>{
+    const siblings=(bySession[r.entry_date+'|'+r.session]||[]).filter(x=>x.slot!==r.slot);
+    const targets=[];
+    if(r.result&&String(r.result).length===4)targets.push({source:'OWN',sourceSlot:r.slot,result:String(r.result)});
+    siblings.forEach(sib=>{
+      if(sib.result&&String(sib.result).length===4)targets.push({source:'CROSS',sourceSlot:sib.slot,result:String(sib.result)});
+    });
+    if(!targets.length)return;
+    MISS_POOLS.forEach(p=>{
+      const list=r[p.key];
+      if(!Array.isArray(list)||!list.length)return;
+      targets.forEach(t=>{
+        const target=t.result.slice(-p.n);
+        const best=bestCandidateFor(list,target,p.n);
+        if(!best)return;
+        best.positions.forEach((pos,i)=>{
+          posStats[p.label][i].total++;
+          if(pos.letterMatch)posStats[p.label][i].match++;
+          posStats[p.label][i].distSum+=pos.letterDistance;
+        });
+        rows.push({date:r.entry_date,session:r.session,sessionLabel:r.session_label||r.session,slot:r.slot,
+          pool:p.label,result:t.result,target,status:best.isExact?'JP':'ZONK',
+          candidate:best.digits,rank:best.rank,score:best.score,positions:best.positions,
+          resultSource:t.source,sourceSlot:t.sourceSlot});
+      });
+    });
+  });
+  const poolOrder={'4H':0,'3H':1,'2H':2};
+  rows.sort((a,b)=>{
+    if(a.date!==b.date)return a.date<b.date?1:-1;
+    if(a.session!==b.session)return a.session<b.session?-1:1;
+    if(a.slot!==b.slot)return a.slot-b.slot;
+    if(a.resultSource!==b.resultSource)return a.resultSource==='OWN'?-1:1;
+    return poolOrder[a.pool]-poolOrder[b.pool];
+  });
+  return {rows,posStats};
+}
+function missSummaryHTML(posStats){
+  let html='<div class="miss-summary"><div class="miss-summary-title">📊 RINGKASAN AGREGAT · SELURUH HISTORI</div><div class="miss-pool-sub">Kandidat & RESULT sudah langsung berupa huruf A-F — dibandingkan posisi per posisi, jarak diukur sebagai selisih posisi alfabet (A=0 ... F=5).</div>';
+  MISS_POOLS.forEach(p=>{
+    const stats=posStats[p.label];
+    if(!stats||!stats[0]||stats[0].total===0){
+      html+=`<div class="miss-pool-block"><div class="miss-pool-label">${p.label}</div><div class="hv2-empty">Belum ada data cukup.</div></div>`;
+      return;
+    }
+    let worstIdx=0,worstRate=2;
+    const cells=stats.map((s,i)=>{
+      const rate=s.total?s.match/s.total:0;
+      const avgDist=s.total?(s.distSum/s.total):0;
+      if(rate<worstRate){worstRate=rate;worstIdx=i;}
+      return `<div class="miss-pos-cell"><small>slot-${i+1}</small><b>${(rate*100).toFixed(0)}%</b><span class="avgdelta">${ciLabel(s.match,s.total)}<br>Δhuruf ${avgDist.toFixed(2)}</span></div>`;
+    }).join('');
+    html+=`<div class="miss-pool-block"><div class="miss-pool-label">${p.label} · ${stats[0].total} data dianalisa</div><div class="miss-pos-grid" style="grid-template-columns:repeat(${stats.length},1fr)">${cells}</div><div class="miss-worst">⚠ Slot posisi paling sering meleset: slot-${worstIdx+1} (cocok huruf hanya ${(worstRate*100).toFixed(0)}%)</div></div>`;
+  });
+  html+='</div>';
+  return html;
+}
+function missCardHTML(row){
+  const digitsHtml=row.positions.map(p=>
+    `<div class="miss-digit ${p.letterMatch?'ok':'bad'}"><b>${p.letterCand}</b><small>${p.letterMatch?'✓ = '+p.letterTarget:'✗ vs '+p.letterTarget+' (jarak '+p.letterDistance+' huruf)'}</small></div>`
+  ).join('');
+  return `<div class="miss-poolrow"><div class="miss-poollabel">${row.pool} · target ${row.target}</div><div class="miss-cand-info">Kandidat <b style="color:#fff">${row.candidate}</b> &nbsp;|&nbsp; Result <b style="color:#fff">${row.target}</b></div><div class="miss-digitrow">${digitsHtml}</div><div class="miss-cand-info">Kandidat terdekat rank #${row.rank}, skor ${((row.score||0)*100).toFixed(2)} — ${row.status==='JP'?'🏆 EXACT MATCH':'💀 MELESET'}</div></div>`;
+}
+function renderMissPage(){
+  const {rows,posStats}=computeMissAnalysis();
+  let html=missSummaryHTML(posStats);
+  html+='<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn btn-red" onclick="exportMissAnalysis()">⬇ EXPORT JSON ANALISA</button></div>';
+  if(!rows.length){
+    html+='<div class="hv2-empty">Belum ada data RESULT untuk dianalisa.</div>';
+    $('missPage').innerHTML=html;
+    return;
+  }
+  const groups=[],map=new Map();
+  rows.forEach(r=>{
+    const key=r.date+'|'+r.session+'|'+r.slot+'|'+r.resultSource+'|'+r.sourceSlot;
+    if(!map.has(key)){const g={date:r.date,session:r.session,sessionLabel:r.sessionLabel,slot:r.slot,resultSource:r.resultSource,sourceSlot:r.sourceSlot,items:[]};map.set(key,g);groups.push(g);}
+    map.get(key).items.push(r);
+  });
+  groups.forEach(g=>{
+    const anyJP=g.items.some(x=>x.status==='JP');
+    const sourceLabel=g.resultSource==='CROSS'?`vs RESULT CROSSING (dari Slot ${g.sourceSlot})`:'vs RESULT';
+    html+=`<div class="miss-card"><div class="miss-head"><span class="miss-date">📅 ${g.date}</span><span class="miss-tag">${g.sessionLabel} · SLOT ${g.slot} · ${sourceLabel}</span><span class="miss-status ${anyJP?'jp':'zonk'}">${anyJP?'🏆 ADA JP':'💀 ZONK SEMUA'}</span></div>${g.items.map(missCardHTML).join('')}</div>`;
+  });
+  $('missPage').innerHTML=html;
+}
+function exportMissAnalysis(){
+  const {rows,posStats}=computeMissAnalysis();
+  const blob=new Blob([JSON.stringify({generatedAt:new Date().toISOString(),positionStats:posStats,rows},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='A-F_BOOT_PRNG_analisa_meleset.json';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+// ===== ANALISA POLA KOMPLEKS OTOMATIS (disimpan ke tabel Supabase khusus: af_pattern_analysis) =====
+// Skema tabel (jalankan sekali di SQL editor Supabase project AF, setelah project dibuat & kredensial diisi):
+//
+// create table af_pattern_analysis (
+//   id uuid primary key default gen_random_uuid(),
+//   entry_date date not null,
+//   session text not null,
+//   session_label text,
+//   slot int not null,
+//   pool text not null,
+//   result_source text not null,      -- 'OWN' atau 'CROSS'
+//   source_slot int not null,         -- slot asal RESULT yang dipakai (bisa sama dgn slot atau slot pasangannya)
+//   raw text,
+//   result text,
+//   candidate text,
+//   candidate_rank int,
+//   candidate_score numeric,
+//   status text,
+//   letter_candidate text,
+//   letter_result text,
+//   positions jsonb,
+//   created_at timestamptz default now(),
+//   unique(entry_date, session, slot, pool, result_source, source_slot)
+// );
+//
+function computeComplexPatternRows(sessionKey){
+  const date=$('entryDate').value||today();
+  const rows=[];
+  const sessionSlots=getSessionSlots(sessionKey);
+  sessionSlots.forEach(s=>{
+    if(!s.engine)return;
+    const targets=[];
+    if(s.result&&String(s.result).length===4)targets.push({source:'OWN',sourceSlot:s.slot,result:String(s.result)});
+    sessionSlots.forEach(sib=>{
+      if(sib.slot!==s.slot&&sib.result&&String(sib.result).length===4)targets.push({source:'CROSS',sourceSlot:sib.slot,result:String(sib.result)});
+    });
+    if(!targets.length)return;
+    MISS_POOLS.forEach(p=>{
+      const list=s.engine[p.key];
+      if(!Array.isArray(list)||!list.length)return;
+      targets.forEach(t=>{
+        const target=t.result.slice(-p.n);
+        const best=bestCandidateFor(list,target,p.n);
+        if(!best)return;
+        const letterCandidate=best.positions.map(x=>x.letterCand).join('');
+        const letterResult=best.positions.map(x=>x.letterTarget).join('');
+        rows.push({
+          entry_date:date,session:sessionKey,session_label:s.label,slot:s.slot,
+          pool:p.label,result_source:t.source,source_slot:t.sourceSlot,
+          raw:s.result||FIXED_RAW,result:t.result,candidate:best.digits,candidate_rank:best.rank,
+          candidate_score:best.score,status:best.isExact?'JP':'ZONK',
+          letter_candidate:letterCandidate,letter_result:letterResult,
+          positions:best.positions
+        });
+      });
+    });
+  });
+  return rows;
+}
+async function saveComplexPatternAnalysis(sessionKey){
+  if(!sb)return;
+  const rows=computeComplexPatternRows(sessionKey);
+  if(!rows.length)return;
+  try{
+    await sb.from('af_pattern_analysis').upsert(rows,{onConflict:'entry_date,session,slot,pool,result_source,source_slot'});
+  }catch(e){/* diam-diam: jangan ganggu alur simpan RESULT utama kalau tabel belum ada / gagal */}
+}
+async function saveLetterPatterns(s){
+  if(!sb||!s.result||String(s.result).length!==4)return;
+  const date=$('entryDate').value||today();
+  const patterns=extractPositionPatterns(String(s.result));
+  if(!patterns.length)return;
+  const rows=patterns.map(p=>({entry_date:date,session:s.session,slot:s.slot,raw:String(s.result),pattern:p,size:p.length}));
+  try{
+    await sb.from('af_letter_patterns').upsert(rows,{onConflict:'entry_date,session,slot,pattern'});
+  }catch(e){/* diam-diam */}
+}
+async function saveRawAnalysisRow(s){
+  if(!sb||!s.result||String(s.result).length!==4)return;
+  const date=$('entryDate').value||today();
+  const chars=[...String(s.result)];
+  const freq=Array(6).fill(0);
+  chars.forEach(ch=>{const idx=letterIndex(ch);if(idx>=0)freq[idx]++});
+  const unique=new Set(chars).size;
+  const maxCount=Math.max(...freq);
+  const row={
+    entry_date:date,session:s.session,slot:s.slot,raw:String(s.result),
+    sum:null,mean:null,unique_digits:unique,
+    even_count:null,high_count:null,low_count:null,
+    pos_weights:freq,mirror:[],deltas:[]
+  };
+  try{
+    await sb.from('af_raw_analysis').upsert([row],{onConflict:'entry_date,session,slot'});
+  }catch(e){/* diam-diam */}
+}
+
+// ===== LAPISAN 1: PREDIKSI SIKLUS OTOMATIS (af_pattern_predictions) =====
+async function savePatternPredictions(){
+  if(!sb)return;
+  const date=$('entryDate').value||today();
+  const {byPattern}=computeLetterPatternStats();
+  const rows=Object.values(byPattern).map(e=>{
+    const dates=e.uniqueDates;
+    const last=dates[dates.length-1];
+    const daysSince=Math.round((new Date(date)-new Date(last))/86400000);
+    let avgGap=null,dueStatus='BELUM';
+    if(dates.length>=2){
+      const gaps=[];
+      for(let i=1;i<dates.length;i++)gaps.push(Math.round((new Date(dates[i])-new Date(dates[i-1]))/86400000));
+      avgGap=gaps.reduce((a,b)=>a+b,0)/gaps.length;
+      if(daysSince>=avgGap*1.5)dueStatus='DUE';
+      else if(daysSince<avgGap*0.5)dueStatus='BARU_MUNCUL';
+    }else{
+      dueStatus='BARU_MUNCUL';
+    }
+    const bt=backtestCycle(dates);
+    const confidenceNote=!bt.enough?
+      `Baru ${dates.length} kemunculan, backtest belum bisa dijalankan (butuh minimal ${bt.need}).`:
+      `${bt.successCount} dari ${bt.total} prediksi tepat (${(bt.accuracy*100).toFixed(0)}% akurasi) vs baseline acak ~${(bt.baseline*100).toFixed(0)}%.`;
+    return {
+      pattern:e.pattern,as_of_date:date,total_occurrences:e.count,
+      avg_cycle_days:avgGap,last_seen_date:last,days_since_last:daysSince,
+      due_status:dueStatus,
+      backtest_accuracy:bt.enough?bt.accuracy:null,
+      backtest_baseline:bt.enough?bt.baseline:null,
+      confidence_note:confidenceNote
+    };
+  });
+  if(!rows.length)return;
+  try{
+    await sb.from('af_pattern_predictions').upsert(rows,{onConflict:'pattern,as_of_date'});
+  }catch(e){/* diam-diam */}
+}
+
+// ===== LAPISAN 2: RINGKASAN PENYEBAB MELESET (af_miss_insights) =====
+function computeMissInsightsRows(){
+  const {posStats}=computeMissAnalysis();
+  const date=$('entryDate').value||today();
+  const rows=[];
+  MISS_POOLS.forEach(p=>{
+    const stats=posStats[p.label];
+    if(!stats||!stats[0]||stats[0].total===0)return;
+    let worstIdx=0,worstRate=2,totalMatch=0,totalAll=0,distSum=0;
+    stats.forEach((s,i)=>{
+      const rate=s.total?s.match/s.total:0;
+      if(rate<worstRate){worstRate=rate;worstIdx=i;}
+      totalMatch+=s.match;totalAll+=s.total;distSum+=s.distSum;
+    });
+    rows.push({
+      as_of_date:date,pool:p.label,
+      worst_position:worstIdx+1,
+      worst_position_match_rate:worstRate===2?null:worstRate,
+      avg_letter_distance:totalAll?distSum/totalAll:null,
+      out_of_raw_rate:0,
+      sample_size:totalAll
+    });
+  });
+  return rows;
+}
+async function saveMissInsights(){
+  if(!sb)return;
+  const rows=computeMissInsightsRows();
+  if(!rows.length)return;
+  try{
+    await sb.from('af_miss_insights').upsert(rows,{onConflict:'as_of_date,pool'});
+  }catch(e){/* diam-diam */}
+}
+
+// ===== CROSS-CHECK: verifikasi prediksi DUE sebelumnya vs RAW baru =====
+async function checkRecommendationOutcomes(resultStr,s){
+  if(!sb)return;
+  const date=$('entryDate').value||today();
+  try{
+    const {data,error}=await sb.from('af_pattern_predictions').select('pattern,as_of_date')
+      .eq('due_status','DUE').lt('as_of_date',date).order('as_of_date',{ascending:false});
+    if(error||!data||!data.length)return;
+    const latestByPattern={};
+    data.forEach(r=>{if(!latestByPattern[r.pattern]||r.as_of_date>latestByPattern[r.pattern])latestByPattern[r.pattern]=r.as_of_date;});
+    const patternsInResult=new Set(extractPositionPatterns(resultStr));
+    const rows=Object.entries(latestByPattern).map(([pattern,predAsOf])=>{
+      const appeared=patternsInResult.has(pattern);
+      const daysSince=Math.round((new Date(date)-new Date(predAsOf))/86400000);
+      return {
+        pattern,prediction_as_of:predAsOf,check_date:date,session:s.session,slot:s.slot,raw:resultStr,
+        appeared,days_since_prediction:daysSince,
+        outcome_note:appeared?`Muncul ${daysSince} hari setelah ditandai DUE`:`Belum muncul (${daysSince} hari sejak ditandai DUE)`
+      };
+    });
+    if(rows.length)await sb.from('af_recommendation_outcomes').upsert(rows,{onConflict:'pattern,prediction_as_of,check_date,session,slot'});
+  }catch(e){/* diam-diam */}
+}
+
+// ===== HEATMAP POLA POSISI RESULT (posisi mana yang huruf-nya sama, dari 4 posisi RESULT) =====
+const RESULT_POS=['1','2','3','4'];
+function extractPositionPatterns(resultStr){
+  if(!resultStr||resultStr.length!==4)return [];
+  const groups={};
+  for(let i=0;i<4;i++){
+    const ch=resultStr[i];
+    (groups[ch]=groups[ch]||[]).push(RESULT_POS[i]);
+  }
+  const patterns=[];
+  Object.values(groups).forEach(g=>{if(g.length>=2)patterns.push([...g].sort().join(''))});
+  return patterns;
+}
+function wilsonInterval(x,n,z){
+  z=z||1.96;
+  if(!n)return {lo:0,hi:0,rate:0};
+  const phat=x/n;
+  const denom=1+(z*z)/n;
+  const center=phat+(z*z)/(2*n);
+  const margin=z*Math.sqrt((phat*(1-phat)+(z*z)/(4*n))/n);
+  return {lo:Math.max(0,(center-margin)/denom),hi:Math.min(1,(center+margin)/denom),rate:phat};
+}
+function ciLabel(x,n,minN){
+  minN=minN||10;
+  const ci=wilsonInterval(x,n);
+  const small=n<minN?` <span class="n-badge">⚠ n kecil (${n})</span>`:'';
+  return `${(ci.rate*100).toFixed(0)}% <span class="ci-range">(CI ${(ci.lo*100).toFixed(0)}–${(ci.hi*100).toFixed(0)}%, n=${n})</span>${small}`;
+}
+function backtestCycle(dates){
+  if(dates.length<5)return {enough:false,need:5,have:dates.length};
+  const n=dates.length,predictions=[];
+  const dayDiff=(a,b)=>Math.round((new Date(b)-new Date(a))/86400000);
+  for(let i=2;i<n;i++){
+    const priorGaps=[];
+    for(let j=1;j<i;j++)priorGaps.push(dayDiff(dates[j-1],dates[j]));
+    const avgGap=priorGaps.reduce((a,b)=>a+b,0)/priorGaps.length;
+    const predicted=new Date(dates[i-1]);predicted.setDate(predicted.getDate()+Math.round(avgGap));
+    const diffDays=dayDiff(predicted.toISOString().slice(0,10),dates[i]);
+    const tolerance=Math.max(3,avgGap*0.5);
+    predictions.push({predicted:predicted.toISOString().slice(0,10),actual:dates[i],diffDays,tolerance,success:Math.abs(diffDays)<=tolerance});
+  }
+  const successCount=predictions.filter(p=>p.success).length;
+  const accuracy=successCount/predictions.length;
+  const avgMiss=predictions.reduce((a,p)=>a+Math.abs(p.diffDays),0)/predictions.length;
+  const avgTolerance=predictions.reduce((a,p)=>a+p.tolerance,0)/predictions.length;
+  const totalSpan=dayDiff(dates[0],dates[n-1])||1;
+  const baseline=Math.min(1,(2*avgTolerance)/totalSpan);
+  return {enough:true,predictions,accuracy,avgMiss,baseline,successCount,total:predictions.length};
+}
+function computeLetterPatternStats(){
+  const byPattern={};
+  const source=(history||[]).filter(r=>r.result&&String(r.result).length===4&&r.entry_date);
+  source.forEach(r=>{
+    const patterns=extractPositionPatterns(String(r.result));
+    patterns.forEach(p=>{
+      if(!byPattern[p])byPattern[p]={pattern:p,size:p.length,count:0,occDates:[]};
+      byPattern[p].count++;
+      byPattern[p].occDates.push(String(r.entry_date));
+    });
+  });
+  Object.values(byPattern).forEach(e=>{
+    e.occDates.sort();
+    e.uniqueDates=[...new Set(e.occDates)];
+  });
+  return {byPattern,totalRaw:source.length};
+}
+function computeLetterBuckets(byPattern){
+  const buckets={2:[],3:[],4:[]};
+  Object.values(byPattern).forEach(e=>{const k=e.size>=4?4:e.size;if(buckets[k])buckets[k].push(e)});
+  Object.keys(buckets).forEach(k=>buckets[k].sort((a,b)=>b.count-a.count));
+  return buckets;
+}
+function patternGridHTML(list,maxCount,targetId,rgb){
+  if(!list.length)return '<div class="hv2-empty">Belum ada data.</div>';
+  return `<div class="heat-grid">${list.map(e=>{
+    const intensity=e.count/maxCount;
+    const bg=`rgba(${rgb},${(0.15+intensity*0.65).toFixed(2)})`;
+    return `<div class="heat-cell" style="background:${bg}" onclick="showPatternDetail('${e.pattern}','${targetId}')"><b>${e.pattern}</b><small>${e.count}x</small></div>`;
+  }).join('')}</div>`;
+}
+function renderMajemukHeatmapHTML(data){
+  const {byPattern}=data;
+  const buckets=computeLetterBuckets(byPattern);
+  const maxCount=Math.max(1,...Object.values(byPattern).map(e=>e.count),1);
+  let html='<div class="miss-summary" style="border-color:var(--purple)"><div class="miss-summary-title" style="color:var(--purple)">🔥 POLA MAJEMUK (3 & 4+ HURUF)</div><div class="miss-pool-sub">Kelompok posisi RAW yang nilai digitnya sama (3 posisi atau lebih), dibaca dari sisi posisi (A=digit ke-1 ... F=digit ke-6), bukan dari nilainya. Ketuk kotak untuk lihat tanggal, tingkat kemunculan (dengan interval kepercayaan), dan backtest siklus.</div>';
+  [3,4].forEach(size=>{
+    const label=size===4?'4+ HURUF':size+' HURUF';
+    const list=buckets[size];
+    html+=`<div class="miss-pool-block"><div class="miss-pool-label">${label} · ${list.length} pola unik</div>${patternGridHTML(list,maxCount,'patternDetailMajemuk','179,136,255')}</div>`;
+  });
+  html+='<div id="patternDetailMajemuk"></div></div>';
+  return html;
+}
+function renderKembarHeatmapHTML(data){
+  const {byPattern}=data;
+  const buckets=computeLetterBuckets(byPattern);
+  const list=buckets[2];
+  const maxCount=Math.max(1,...list.map(e=>e.count),1);
+  let html='<div class="miss-summary" style="border-color:var(--gold)"><div class="miss-summary-title" style="color:var(--gold)">👯 KHUSUS KEMBAR (2 HURUF / PASANGAN)</div><div class="miss-pool-sub">Pasangan posisi RAW yang nilai digitnya sama persis — dipisah dari pola majemuk di atas supaya lebih gampang dipantau tersendiri. Ketuk kotak untuk detail tanggal, tingkat kemunculan, dan backtest siklus.</div>';
+  html+=`<div class="miss-pool-block"><div class="miss-pool-label">2 HURUF · ${list.length} pola unik</div>${patternGridHTML(list,maxCount,'patternDetailKembar','255,209,102')}</div>`;
+  html+='<div id="patternDetailKembar"></div></div>';
+  return html;
+}
+function renderHeatmapPage(){
+  const data=computeLetterPatternStats();
+  let html=renderMajemukHeatmapHTML(data);
+  html+=renderKembarHeatmapHTML(data);
+  $('heatmapPage').innerHTML=html;
+}
+
+// ===== TAB REKOMENDASI & REVIEW (baca langsung dari Supabase) =====
+async function renderRecommendationPage(){
+  const el=$('recoPage');
+  el.innerHTML='<div class="hv2-empty">⏳ Memuat rekomendasi dari Supabase...</div>';
+  if(!sb){el.innerHTML='<div class="hv2-empty">⚠ Supabase belum tersambung.</div>';return;}
+  try{
+    const [predRes,insightRes,outcomeRes,reviewRes]=await Promise.all([
+      sb.from('af_pattern_predictions').select('*').order('as_of_date',{ascending:false}).limit(500),
+      sb.from('af_miss_insights').select('*').order('as_of_date',{ascending:false}).limit(100),
+      sb.from('af_recommendation_outcomes').select('*').order('check_date',{ascending:false}).limit(200),
+      sb.from('af_engine_reviews').select('*').order('review_date',{ascending:false}).limit(50)
+    ]);
+    el.innerHTML=renderRecoSections(predRes.data||[],insightRes.data||[],outcomeRes.data||[],reviewRes.data||[]);
+  }catch(e){
+    el.innerHTML='<div class="hv2-empty">⚠ Gagal memuat data rekomendasi: '+(e?.message||e)+'</div>';
+  }
+}
+function renderRecoSections(preds,insights,outcomes,reviews){
+  const latestPred={};
+  preds.forEach(p=>{if(!latestPred[p.pattern]||p.as_of_date>latestPred[p.pattern].as_of_date)latestPred[p.pattern]=p;});
+  const dueList=Object.values(latestPred).filter(p=>p.due_status==='DUE').sort((a,b)=>(b.backtest_accuracy||0)-(a.backtest_accuracy||0));
+
+  let html='<div class="miss-summary" style="border-color:var(--gold)"><div class="miss-summary-title" style="color:var(--gold)">🧠 POLA YANG "DUE" (SPEKULATIF)</div><div class="miss-pool-sub">Berdasarkan siklus historis, bukan jaminan — diurutkan dari yang backtest-nya paling meyakinkan.</div>';
+  if(!dueList.length){
+    html+='<div class="hv2-empty">Belum ada pola berstatus DUE saat ini.</div>';
+  }else{
+    html+=dueList.map(p=>`<div class="miss-poolrow"><div class="miss-poollabel">${p.pattern} · siklus ±${(p.avg_cycle_days||0).toFixed(1)} hari</div><div class="miss-cand-info">Terakhir muncul ${p.last_seen_date} (${p.days_since_last} hari lalu). ${p.confidence_note||''}</div></div>`).join('');
+  }
+  html+='</div>';
+
+  html+='<div class="miss-summary" style="border-color:var(--accent2)"><div class="miss-summary-title" style="color:var(--accent2)">📉 RINGKASAN PENYEBAB MELESET TERBARU</div>';
+  if(!insights.length){
+    html+='<div class="hv2-empty">Belum ada data.</div>';
+  }else{
+    const latestDate=insights[0].as_of_date;
+    const todays=insights.filter(i=>i.as_of_date===latestDate);
+    html+=`<div class="miss-pool-sub">Tanggal: ${latestDate}</div>`+todays.map(i=>`<div class="miss-pool-block"><div class="miss-pool-label">${i.pool}</div><div class="miss-cand-info">Slot paling sering meleset: posisi ke-${i.worst_position} (cocok ${((i.worst_position_match_rate||0)*100).toFixed(0)}%). Rata-rata jarak huruf: ${(i.avg_letter_distance||0).toFixed(2)}. Kandidat di luar RAW: ${((i.out_of_raw_rate||0)*100).toFixed(0)}% (n=${i.sample_size}).</div></div>`).join('');
+  }
+  html+='</div>';
+
+  html+='<div class="miss-summary" style="border-color:var(--purple)"><div class="miss-summary-title" style="color:var(--purple)">📋 RIWAYAT CROSS-CHECK PREDIKSI</div>';
+  if(!outcomes.length){
+    html+='<div class="hv2-empty">Belum ada prediksi yang diverifikasi.</div>';
+  }else{
+    const appearedCount=outcomes.filter(o=>o.appeared).length;
+    const rate=appearedCount/outcomes.length;
+    html+=`<div class="miss-worst">Dari ${outcomes.length} prediksi DUE yang sudah dicek, ${appearedCount} beneran muncul (${(rate*100).toFixed(0)}%).</div>`;
+    html+=outcomes.slice(0,30).map(o=>`<div class="miss-cand-info">${o.appeared?'✓':'✗'} ${o.pattern} — dicek ${o.check_date} (slot ${o.slot}) — ${o.outcome_note}</div>`).join('');
+  }
+  html+='</div>';
+
+  html+='<div class="miss-summary"><div class="miss-summary-title">🛠 RIWAYAT REVIEW ENGINE</div>';
+  if(!reviews.length){
+    html+='<div class="hv2-empty">Belum ada review formula yang dijalankan.</div>';
+  }else{
+    html+=reviews.map(r=>`<div class="miss-poolrow"><div class="miss-poollabel">${r.review_date} · ${r.status}</div><div class="miss-cand-info">${r.key_findings||''}</div><div class="miss-cand-info"><b>Rekomendasi:</b> ${r.recommended_action||'-'}</div></div>`).join('');
+  }
+  html+='</div>';
+  return html;
+}
+function showPatternDetail(pattern,targetId){
+  targetId=targetId||'patternDetail';
+  const {byPattern,totalRaw}=computeLetterPatternStats();
+  const e=byPattern[pattern];
+  const el=$(targetId);
+  if(!el)return;
+  if(!e){el.innerHTML='';return;}
+  const dates=e.uniqueDates;
+  const last=dates[dates.length-1];
+  const daysSince=Math.round((new Date(today())-new Date(last))/86400000);
+  let gapText='data belum cukup untuk hitung siklus (baru 1 tanggal)';
+  let avgGap=null;
+  if(dates.length>=2){
+    const gaps=[];
+    for(let i=1;i<dates.length;i++)gaps.push(Math.round((new Date(dates[i])-new Date(dates[i-1]))/86400000));
+    avgGap=gaps.reduce((a,b)=>a+b,0)/gaps.length;
+    gapText=`rata-rata muncul tiap ±${avgGap.toFixed(1)} hari sekali (dari ${dates.length} tanggal berbeda)`;
+  }
+  let insight=`Pola <b>${pattern}</b> muncul <b>${e.count}x</b> total (di ${dates.length} tanggal berbeda) selama histori tersedia — ${gapText}. Terakhir muncul <b>${daysSince} hari lalu</b> (${last}).`;
+  if(avgGap!==null){
+    if(daysSince>=avgGap*1.5)insight+=' ⚠ Sudah melewati rata-rata siklusnya — ada kemungkinan muncul kembali dalam waktu dekat.';
+    else if(daysSince<avgGap*0.5)insight+=' Baru saja muncul, masih di bawah rata-rata jarak siklusnya.';
+  }
+  const rateLine=`<div class="pattern-detail-insight">Tingkat kemunculan: <b>${ciLabel(e.count,totalRaw)}</b> dari total ${totalRaw} RAW yang dianalisa.</div>`;
+  const bt=backtestCycle(dates);
+  let btHtml;
+  if(!bt.enough){
+    btHtml=`<div class="pattern-detail-insight">🧪 Backtest siklus: belum cukup data (butuh minimal ${bt.need} kemunculan, baru ada ${bt.have}).</div>`;
+  }else{
+    const verdict=bt.accuracy>=bt.baseline*1.5?'Siklus ini kemungkinan nyata, bukan kebetulan.':(bt.accuracy<=bt.baseline*1.1?'Belum cukup beda dari tebakan acak — hati-hati menganggap ini siklus nyata.':'Sedikit lebih baik dari tebakan acak, tapi belum kuat.');
+    btHtml=`<div class="pattern-detail-insight">🧪 Backtest siklus: <b>${bt.successCount} dari ${bt.total}</b> prediksi tepat (${(bt.accuracy*100).toFixed(0)}% akurasi, rata-rata meleset ${bt.avgMiss.toFixed(1)} hari) — dibanding baseline tebakan acak ~${(bt.baseline*100).toFixed(0)}%. ${verdict}</div>`;
+  }
+  el.innerHTML=`<div class="pattern-detail-box"><div class="pattern-detail-title">🔎 DETAIL POLA ${pattern}</div><div class="pattern-detail-insight">${insight}</div>${rateLine}${btHtml}<div class="pattern-detail-dates">${e.occDates.slice().reverse().map(d=>`<span class="match-chip">${d}</span>`).join('')}</div></div>`;
+}
+$('entryDate').addEventListener('change',()=>loadHistoryFromSupabase(true));
+renderSessions();
+renderHistoryPage();
+loadHistoryFromSupabase(true);
+
+// ===== LIVE CLOCK SYNC SUPABASE SERVER TIME =====
+let clockOffsetMs=0, clockSynced=false;
+const MONTH_ID=['JAN','FEB','MAR','APR','MEI','JUN','JUL','AGU','SEP','OKT','NOV','DES'];
+async function syncServerTime(){
+  try{
+    const t0=Date.now();
+    const res=await fetch(SUPABASE_URL+'/rest/v1/',{method:'HEAD',headers:{apikey:SUPABASE_ANON_KEY}});
+    const t1=Date.now();
+    const serverDateHeader=res.headers.get('date');
+    if(!serverDateHeader)throw new Error('no date header');
+    const serverMs=new Date(serverDateHeader).getTime();
+    const rtt=t1-t0;
+    const estServerNow=serverMs+Math.round(rtt/2);
+    clockOffsetMs=estServerNow-t1;
+    clockSynced=true;
+  }catch(e){
+    clockSynced=false;
+  }
+}
+function pad2(n){return String(n).padStart(2,'0')}
+function tickClock(){
+  const el=$('liveClock');
+  if(!el)return;
+  const now=new Date(Date.now()+clockOffsetMs);
+  const dd=pad2(now.getDate());
+  const mm=MONTH_ID[now.getMonth()];
+  const yyyy=now.getFullYear();
+  const hh=pad2(now.getHours());
+  const mi=pad2(now.getMinutes());
+  const ss=pad2(now.getSeconds());
+  el.textContent='🕒 '+dd+' '+mm+' '+yyyy+' · '+hh+':'+mi+':'+ss+(clockSynced?' (server)':' (lokal)');
+}
+syncServerTime().then(tickClock);
+setInterval(tickClock,1000);
+setInterval(syncServerTime,300000);
+
+</script>
+</body></html>
