@@ -40,7 +40,8 @@
 <div class="page" id="page-heatmap"><div id="heatmapPage"></div></div>
 <div class="page" id="page-reco"><div id="recoPage"></div></div>
 <div class="page" id="page-xoshiro">
-  <div class="hv2-box"><div class="hv2-title">🎰 XOSHIRO128++ — ENGINE MANDIRI</div><div class="hv2-sub">Tab independen memakai algoritma <b style="color:#fff">Xoshiro128++</b> (seed splitmix32 dari tanggal+sesi+slot), terpisah total dari engine Mulberry32 di tab GENERATOR. Tidak terhubung ke ANALISA MELESET, HEATMAP, REKOMENDASI, maupun tabel analisa lain. Tanggal mengikuti kolom 📅 TANGGAL di tab GENERATOR.</div></div>
+  <div class="hv2-box"><div class="hv2-title">🎰 XOSHIRO128++ — ENGINE MANDIRI</div><div class="hv2-sub">Tab independen memakai algoritma <b style="color:#fff">Xoshiro128++</b> (seed splitmix32 dari tanggal+sesi+slot), terpisah total dari engine Mulberry32 di tab GENERATOR. Tidak terhubung ke ANALISA MELESET, HEATMAP, REKOMENDASI, maupun tabel analisa lain.</div></div>
+  <div class="uni-date-row" style="margin-bottom:10px"><span class="uni-date-label">📅 TANGGAL</span><input class="uni-date-input" id="entryDateXo" type="date"><button class="btn" onclick="openCalendar()" style="flex:0 0 auto">🗓 KALENDER</button></div>
   <div id="xoSaveState" class="statusline"></div>
   <div id="xoSessionBoard"></div><div id="xoDailyHistory"></div>
 </div>
@@ -64,11 +65,16 @@ async function fetchDatesWithData(year,month){
   const start=`${year}-${calPad2(month+1)}-01`;
   const lastDay=new Date(year,month+1,0).getDate();
   const end=`${year}-${calPad2(month+1)}-${calPad2(lastDay)}`;
+  const out=new Set();
   try{
     const {data,error}=await sb.from('boot_prng_history').select('entry_date').gte('entry_date',start).lte('entry_date',end);
-    if(error||!data)return new Set();
-    return new Set(data.map(r=>String(r.entry_date)));
-  }catch(e){return new Set();}
+    if(!error&&data)data.forEach(r=>out.add(String(r.entry_date)));
+  }catch(e){}
+  try{
+    const {data,error}=await sb.from('xoshiro128_history').select('entry_date').gte('entry_date',start).lte('entry_date',end);
+    if(!error&&data)data.forEach(r=>out.add(String(r.entry_date)));
+  }catch(e){}
+  return out;
 }
 async function renderCalendar(){
   const {year,month}=calState;
@@ -112,8 +118,10 @@ async function openCalendar(){
 function closeCalendar(){$('calPopupOverlay').style.display='none';}
 function pickCalDate(dateStr){
   $('entryDate').value=dateStr;
+  if($('entryDateXo'))$('entryDateXo').value=dateStr;
   closeCalendar();
   loadHistoryFromSupabase(true);
+  loadXoHistoryFromSupabase(true);
 }
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function initSlots(){slots=[];let id=0;SESSION_CONFIG.forEach(sess=>{for(let n=1;n<=sess.slots;n++)slots.push({id:id++,session:sess.key,label:sess.label,slot:n,raw:'',result:'',engine:null})})}
@@ -1296,7 +1304,17 @@ function showPatternDetail(pattern,targetId){
   }
   el.innerHTML=`<div class="pattern-detail-box"><div class="pattern-detail-title">🔎 DETAIL POLA ${pattern}</div><div class="pattern-detail-insight">${insight}</div>${rateLine}${btHtml}<div class="pattern-detail-dates">${e.occDates.slice().reverse().map(d=>`<span class="match-chip">${d}</span>`).join('')}</div></div>`;
 }
-$('entryDate').addEventListener('change',()=>{loadHistoryFromSupabase(true);loadXoHistoryFromSupabase(true);});
+$('entryDate').addEventListener('change',()=>{
+  if($('entryDateXo'))$('entryDateXo').value=$('entryDate').value;
+  loadHistoryFromSupabase(true);loadXoHistoryFromSupabase(true);
+});
+if($('entryDateXo')){
+  $('entryDateXo').value=$('entryDate').value;
+  $('entryDateXo').addEventListener('change',()=>{
+    $('entryDate').value=$('entryDateXo').value;
+    loadHistoryFromSupabase(true);loadXoHistoryFromSupabase(true);
+  });
+}
 renderSessions();
 renderHistoryPage();
 loadHistoryFromSupabase(true);
