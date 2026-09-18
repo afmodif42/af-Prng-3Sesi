@@ -1885,6 +1885,17 @@ function bestCandidateFor(list,target,n){
   }
   return best;
 }
+function computeLetterFrequency(historyArr=history){
+  const freq={A:0,B:0,C:0,D:0,E:0,F:0};
+  (historyArr||[]).forEach(r=>{
+    if(r.result&&String(r.result).length===4){
+      for(const ch of String(r.result).toUpperCase()){
+        if(Object.prototype.hasOwnProperty.call(freq,ch))freq[ch]++;
+      }
+    }
+  });
+  return freq;
+}
 function computeAchievement(historyArr=history){
   const bySession={};
   (historyArr||[]).forEach(r=>{
@@ -1912,11 +1923,23 @@ function computeAchievement(historyArr=history){
 }
 function buildAchievementHTML(historyArr,label){
   const {total,tally}=computeAchievement(historyArr);
+  const freq=computeLetterFrequency(historyArr);
   const cellRow=(t)=>`<div class="miss-pos-grid" style="grid-template-columns:repeat(3,1fr)">
     <div class="miss-pos-cell"><small>4H</small><b>${t.H4}x</b></div>
     <div class="miss-pos-cell"><small>3H</small><b>${t.H3}x</b></div>
     <div class="miss-pos-cell"><small>2H</small><b>${t.H2}x</b></div>
   </div>`;
+  const letters=['A','B','C','D','E','F'];
+  const maxFreq=Math.max(...letters.map(l=>freq[l]));
+  const letterRow=`<div class="miss-pos-grid" style="grid-template-columns:repeat(6,1fr)">${letters.map(l=>{
+    const v=freq[l];
+    const isMax=v===maxFreq&&maxFreq>0;
+    const isZero=v===0;
+    const style=isMax?'border-color:var(--green)':isZero?'opacity:.45':'';
+    return `<div class="miss-pos-cell" style="${style}"><small>${l}</small><b>${v}x</b></div>`;
+  }).join('')}</div>`;
+  const never=letters.filter(l=>freq[l]===0);
+  const sorted=letters.slice().sort((a,b)=>freq[b]-freq[a]);
   return `<div class="hv2-box"><div class="hv2-title">📊 PENCAPAIAN — ${esc(label)}</div><div class="hv2-sub">Rekap seluruh RESULT yang pernah tersimpan untuk engine ini, terpisah dari engine lain.</div></div>
   <div class="miss-summary"><div class="miss-summary-title">TOTAL DATA</div><div class="miss-pos-cell" style="max-width:140px"><b style="font-size:16px">${total}</b><small>RESULT tersimpan</small></div></div>
   <div class="miss-summary" style="border-color:var(--green)">
@@ -1928,6 +1951,12 @@ function buildAchievementHTML(historyArr,label){
     <div class="miss-summary-title" style="color:var(--purple)">🔀 JP "CROSS"</div>
     <div class="miss-pool-sub">Kandidat suatu slot cocok dengan RESULT slot tetangga (sesi sama). Selalu 0 selama tiap sesi cuma 1 slot.</div>
     ${cellRow(tally.cross)}
+  </div>
+  <div class="miss-summary" style="border-color:var(--accent)">
+    <div class="miss-summary-title" style="color:var(--accent)">🔤 FREKUENSI HURUF PADA RESULT</div>
+    <div class="miss-pool-sub">Jumlah kemunculan tiap huruf A-F di seluruh RESULT yang tersimpan (4 posisi × ${total} data). Kotak hijau = paling sering keluar, kotak redup = belum pernah keluar sama sekali.</div>
+    ${letterRow}
+    <div style="font-size:8px;color:var(--dim);margin-top:8px">Urutan tersering → terjarang: ${sorted.map(l=>`${l}(${freq[l]}x)`).join(' · ')}${never.length?`<br><span style="color:var(--accent2)">Belum pernah keluar sama sekali: ${never.join(', ')}</span>`:''}</div>
   </div>`;
 }
 function computeMissAnalysis(historyArr=history){
